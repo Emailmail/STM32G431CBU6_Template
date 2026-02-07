@@ -22,6 +22,7 @@
 #include "dma.h"
 #include "fdcan.h"
 #include "spi.h"
+#include "stm32g4xx_hal.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
@@ -53,9 +54,8 @@
 
 /* USER CODE BEGIN PV */
 VOFA_Instance *vofa;
-float vofa_sendfloat[7] = {0};
+float vofa_sendfloat[8] = {0};
 FOC_Instance *foc;
-float x = 0.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,13 +68,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM6) {
-    /* 生成正弦波电流 */
-    foc->current.Ia = sin(x);
-    foc->current.Ib = sin(x + PI / 3.0f * 2.0f);    
-    foc->current.Ic = sin(x + PI / 3.0f * 4.0f);   
-    x += 0.0001f;
-    /* FOC 变换 */
-    FOC_Transform(foc);
+    FOC_OpenLoop(foc, 0.0f, 0.5f, 0.005f);
   }
 }
 /* USER CODE END 0 */
@@ -126,26 +120,32 @@ int main(void)
     while (1)
       ;
 
-  foc = FOC_Register();
+  FOC_InitTypedef init = {
+    .powerVol = 8.0f,
+    .tim = &htim1
+  };
+  foc = FOC_Register(&init);
   if (foc == NULL)
     while (1)
       ;
   
+  HAL_Delay(500);
   HAL_TIM_Base_Start_IT(&htim6);
+  FOC_Init(foc);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-    vofa_sendfloat[0] = foc->current.Ia;
-    vofa_sendfloat[1] = foc->current.Ib;
-    vofa_sendfloat[2] = foc->current.Ic;
-    vofa_sendfloat[3] = foc->clarke.alpha + 2.0f;
-    vofa_sendfloat[4] = foc->clarke.beta + 2.0f;
-    vofa_sendfloat[5] = foc->park.d + 5.0f;
-    vofa_sendfloat[6] = foc->park.q + 5.0f;
-
-    VOFA_Send(vofa, vofa_sendfloat, 7);
+    vofa_sendfloat[0] = foc->param.Uabc.a;
+    vofa_sendfloat[1] = foc->param.Uabc.b;
+    vofa_sendfloat[2] = foc->param.Uabc.c;
+    vofa_sendfloat[3] = foc->param.UAlphaBeta.Alpha;
+    vofa_sendfloat[4] = foc->param.UAlphaBeta.Beta;
+    vofa_sendfloat[5] = foc->param.Udq.d;
+    vofa_sendfloat[6] = foc->param.Udq.q;
+    vofa_sendfloat[7] = foc->param.angle;
+    VOFA_Send(vofa, vofa_sendfloat, 8);
     HAL_Delay(5);
     /* USER CODE END WHILE */
 
