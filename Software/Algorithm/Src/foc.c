@@ -42,10 +42,10 @@ static void InClarke(AlphaBeta_Typedef *AlphaBeta, abc_Typedef *abc) {
  * @param theta 角度
  */
 static void AngleLimit(float *theta) {
-  while (*theta >= PI) {
+  while (*theta >= 2 * PI) {
     *theta -= 2 * PI;
   }
-  while (*theta < -PI) {
+  while (*theta < 0) {
     *theta += 2 * PI;
   }
 }
@@ -76,7 +76,7 @@ static void FOC_SetSPWM(FOC_Instance *instance) {
  * @return FOC实例
  */
 FOC_Instance *FOC_Register(FOC_InitTypedef *init) {
-  if (init->powerVol <= 0 || init->tim == NULL)
+  if (init->powerVol <= 0 || init->tim == NULL || init->pole_pairs == 0)
     return NULL;
 
   FOC_Instance *instance = (FOC_Instance *)malloc(sizeof(FOC_Instance));
@@ -89,6 +89,7 @@ FOC_Instance *FOC_Register(FOC_InitTypedef *init) {
   instance->pwm.period = (init->tim->Init.Period + 1);
   instance->param.powerVol = init->powerVol;
   instance->param.powerVol_half = init->powerVol / 2.0f;
+  instance->param.pole_pairs = init->pole_pairs;
 
   return instance;
 }
@@ -96,7 +97,8 @@ FOC_Instance *FOC_Register(FOC_InitTypedef *init) {
 /**
  * @brief FOC 初始化
  */
-void FOC_Init(FOC_Instance *instance) {
+void FOC_Init(FOC_Instance *instance,float angle_electrical_offset) {
+  instance->param.angle_electrical_offset = angle_electrical_offset;
   HAL_TIM_Base_Start_IT(instance->pwm.tim);
   instance->pwm.tim->Instance->CCR1 = 0;
   instance->pwm.tim->Instance->CCR2 = 0;
@@ -110,19 +112,53 @@ void FOC_Init(FOC_Instance *instance) {
 }
 
 /**
+ * @brief FOC 设置模式
+ */
+void FOC_SetMode(FOC_Instance *instance, FOC_ControlState mode) {
+  instance->state = mode;
+}
+
+/**
  * @brief FOC 开环控制
  * @param instance FOC实例
+ * @param Ud 直轴上的电压
+ * @param Uq 交轴上的电压
+ * @param angle 电角度
  */
 void FOC_OpenLoop(FOC_Instance *instance, float Ud, float Uq,
-                  float delta_theta) {
+                  float angle) {
   /* 参数传递 */
   instance->param.Udq.d = Ud;
   instance->param.Udq.q = Uq;
-  instance->param.angle += delta_theta;
-  AngleLimit(&instance->param.angle);
+  instance->param.angle_electrical = angle;
+  AngleLimit(&instance->param.angle_electrical);
 
   /* 通过 Park 逆变换和 Clarke 逆变换，将 Uqd 转换为 Uabc */
-  InPark(&instance->param.Udq, &instance->param.UAlphaBeta, instance->param.angle);
+  InPark(&instance->param.Udq, &instance->param.UAlphaBeta, instance->param.angle_electrical);
+  InClarke(&instance->param.UAlphaBeta, &instance->param.Uabc);
+
+  /* 根据计算得到的 Uabc 值，设置 SPWM */
+  FOC_SetSPWM(instance);
+}
+
+/**
+ * @brief FOC 带编码器的开环控制
+ * @param instance FOC实例
+ * @param Ud 直轴上的电压
+ * @param Uq 交轴上的电压
+ * @param angle 机械角度（编码器测得）
+ */
+void FOC_EncoderOpenLoop(FOC_Instance *instance, float Ud, float Uq, float angle) {
+  /* 参数传递 */
+  instance->param.Udq.d = Ud;
+  instance->param.Udq.q = Uq;
+  instance->param.angle_mechanical = angle;
+  instance->param.angle_electrical = (float)(angle * instance->param.pole_pairs) - instance->param.angle_electrical_offset;
+  AngleLimit(&instance->param.angle_mechanical);
+  AngleLimit(&instance->param.angle_electrical);
+
+  /* 通过 Park 逆变换和 Clarke 逆变换，将 Uqd 转换为 Uabc */
+  InPark(&instance->param.Udq, &instance->param.UAlphaBeta, instance->param.angle_electrical);
   InClarke(&instance->param.UAlphaBeta, &instance->param.Uabc);
 
   /* 根据计算得到的 Uabc 值，设置 SPWM */

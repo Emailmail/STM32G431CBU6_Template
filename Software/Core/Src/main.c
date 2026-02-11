@@ -22,7 +22,9 @@
 #include "dma.h"
 #include "fdcan.h"
 #include "spi.h"
+#include "stm32g431xx.h"
 #include "stm32g4xx_hal.h"
+#include "stm32g4xx_hal_gpio.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
@@ -33,6 +35,8 @@
 #include "vofa.h"
 #include "foc.h"
 #include "arm_math.h"
+#include "as5047.h"
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,8 +60,21 @@
 VOFA_Instance *vofa;
 float vofa_sendfloat[8] = {0};
 FOC_Instance *foc;
-/* USER CODE END PV */
 
+AS5047P_Instance *as5047p;
+float as5047p_angle;
+
+float mec_angle_act = 0.0f;
+float ele_angle_act = 0.0f;
+float mec_angle_target = 0.0f;
+float ele_angle_target = 0.0f;
+
+uint32_t count1_start = 0;
+uint32_t count2_nums = 0;
+
+float bias = 0.0f;
+float bias_sum = 0.0f;
+float bias_avg = 0.0f;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
@@ -68,7 +85,41 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM6) {
-    FOC_OpenLoop(foc, 0.0f, 0.5f, 0.005f);
+    as5047p_angle = AS5047P_ReadAngle(as5047p); 
+
+    mec_angle_act = 2 * PI - as5047p_angle;
+    ele_angle_act = 14 * mec_angle_act + 42.0913811f;
+    // if(ele_angle_act >= 28 * PI) {
+    //   ele_angle_act -= 28 * PI;
+    // }
+
+    // mec_angle_target += 0.00005f;
+    // if(mec_angle_target >= 2 * PI) {
+    //   mec_angle_target -= 2 * PI;
+    // }
+    // ele_angle_target = 14 * mec_angle_target;
+
+    // FOC_OpenLoop(foc, 1.2f, 0.0f, ele_angle_target);
+    FOC_OpenLoop(foc, 0.0f, 1.5f, ele_angle_act);
+
+    // if(count1_start != 50000 ) {
+    //   count1_start ++;
+    // }
+    // else {
+    //   if(count2_nums < 50000) {
+    //     bias = ele_angle_target - ele_angle_act;
+    //     if(bias < 50.0f && bias > 40.0f) {
+    //       bias_sum += bias;
+    //       count2_nums ++;
+    //     }
+    //   }
+    //   else if(count2_nums == 50000) {
+    //     bias_avg = bias_sum / count2_nums;
+    //     count2_nums ++;
+    //   }
+    // }
+
+    // FOC_EncoderOpenLoop(foc, 0.0f, 1.2f, -as5047p_angle);
   }
 }
 /* USER CODE END 0 */
@@ -122,30 +173,29 @@ int main(void)
 
   FOC_InitTypedef init = {
     .powerVol = 8.0f,
-    .tim = &htim1
+    .tim = &htim1,
+    .pole_pairs = 14,
   };
   foc = FOC_Register(&init);
   if (foc == NULL)
     while (1)
       ;
+
+  as5047p = AS5047P_Register(&hspi1, GPIOA, GPIO_PIN_15, 0.15f);
   
   HAL_Delay(500);
   HAL_TIM_Base_Start_IT(&htim6);
-  FOC_Init(foc);
+  FOC_Init(foc, -2.807407843);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-    vofa_sendfloat[0] = foc->param.Uabc.a;
-    vofa_sendfloat[1] = foc->param.Uabc.b;
-    vofa_sendfloat[2] = foc->param.Uabc.c;
-    vofa_sendfloat[3] = foc->param.UAlphaBeta.Alpha;
-    vofa_sendfloat[4] = foc->param.UAlphaBeta.Beta;
-    vofa_sendfloat[5] = foc->param.Udq.d;
-    vofa_sendfloat[6] = foc->param.Udq.q;
-    vofa_sendfloat[7] = foc->param.angle;
-    VOFA_Send(vofa, vofa_sendfloat, 8);
+    vofa_sendfloat[0] = mec_angle_act;
+    vofa_sendfloat[1] = ele_angle_act;
+    vofa_sendfloat[2] = mec_angle_target; 
+    vofa_sendfloat[3] = ele_angle_target;
+    VOFA_Send(vofa, vofa_sendfloat, 4);
     HAL_Delay(5);
     /* USER CODE END WHILE */
 
