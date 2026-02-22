@@ -1,8 +1,8 @@
 {
 	"InstallScripts" : 
 	[
-		"C:/Users/Relog/Desktop/STM32G431CBU6_Template/Software/build/Debug/cmake_install.cmake",
-		"C:/Users/Relog/Desktop/STM32G431CBU6_Template/Software/build/Debug/cmake/stm32cubemx/cmake_install.cmake"
+		"C:/Users/27368/Desktop/STM32G431CBU6_Template/Software/build/Debug/cmake_install.cmake",
+		"C:/Users/27368/Desktop/STM32G431CBU6_Template/Software/build/Debug/cmake/stm32cubemx/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

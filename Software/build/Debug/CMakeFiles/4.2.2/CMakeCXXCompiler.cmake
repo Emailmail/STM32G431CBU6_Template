@@ -1,4 +1,4 @@
-set(CMAKE_CXX_COMPILER "C:/arm-gnu/bin/arm-none-eabi-g++.exe")
+set(CMAKE_CXX_COMPILER "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-g++.exe")
 set(CMAKE_CXX_COMPILER_ARG1 "")
 set(CMAKE_CXX_COMPILER_ID "GNU")
 set(CMAKE_CXX_COMPILER_VERSION "15.2.1")
@@ -25,14 +25,14 @@ set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID "armv7")
 
 
 
-set(CMAKE_AR "C:/arm-gnu/bin/arm-none-eabi-ar.exe")
-set(CMAKE_CXX_COMPILER_AR "C:/arm-gnu/bin/arm-none-eabi-gcc-ar.exe")
-set(CMAKE_RANLIB "C:/arm-gnu/bin/arm-none-eabi-ranlib.exe")
-set(CMAKE_CXX_COMPILER_RANLIB "C:/arm-gnu/bin/arm-none-eabi-gcc-ranlib.exe")
-set(CMAKE_LINKER "C:/arm-gnu/bin/arm-none-eabi-g++.exe")
+set(CMAKE_AR "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-ar.exe")
+set(CMAKE_CXX_COMPILER_AR "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc-ar.exe")
+set(CMAKE_RANLIB "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-ranlib.exe")
+set(CMAKE_CXX_COMPILER_RANLIB "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc-ranlib.exe")
+set(CMAKE_LINKER "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-g++.exe")
 set(CMAKE_LINKER_LINK "")
 set(CMAKE_LINKER_LLD "")
-set(CMAKE_CXX_COMPILER_LINKER "[1/2] C:/arm-gnu/bin/arm-none-eabi-g++.exe")
+set(CMAKE_CXX_COMPILER_LINKER "[1/2] D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-g++.exe")
 set(CMAKE_CXX_COMPILER_LINKER_ID "")
 set(CMAKE_CXX_COMPILER_LINKER_VERSION )
 set(CMAKE_CXX_COMPILER_LINKER_FRONTEND_VARIANT )
@@ -90,7 +90,7 @@ endif()
 
 
 
-set(CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "C:/arm-gnu/arm-none-eabi/include/c++/15.2.1;C:/arm-gnu/arm-none-eabi/include/c++/15.2.1/arm-none-eabi/thumb/v7e-m+fp/hard;C:/arm-gnu/arm-none-eabi/include/c++/15.2.1/backward;C:/arm-gnu/lib/gcc/arm-none-eabi/15.2.1/include;C:/arm-gnu/lib/gcc/arm-none-eabi/15.2.1/include-fixed;C:/arm-gnu/arm-none-eabi/include")
+set(CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/arm-none-eabi/include/c++/15.2.1;D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/arm-none-eabi/include/c++/15.2.1/arm-none-eabi/thumb/v7e-m+fp/hard;D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/arm-none-eabi/include/c++/15.2.1/backward;D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/lib/gcc/arm-none-eabi/15.2.1/include;D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/lib/gcc/arm-none-eabi/15.2.1/include-fixed;D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/arm-none-eabi/include")
 set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
 set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "")
 set(CMAKE_CXX_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")

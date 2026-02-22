@@ -5,9 +5,11 @@
 #include "stm32g4xx_hal_tim.h"
 #include "stm32g4xx_hal_tim_ex.h"
 #include "string.h"
+#include <stdint.h>
 
-#define SQRT3 1.73205080757f    // √3
-#define _2PI 6.283185307179586f // 2*PI
+#define SQRT3 1.732050807568877f      // √3
+#define SQRT3_DIV2 0.866025403784438f // √3 / 2
+#define _2PI 6.283185307179586f       // 2 * PI
 
 /* ---------------- 驱动函数 Begin ---------------- */
 /**
@@ -32,9 +34,9 @@ static void InPark(dq_Typedef *dq, AlphaBeta_Typedef *AlphaBeta, float theta) {
 static void InClarke(AlphaBeta_Typedef *AlphaBeta, abc_Typedef *abc) {
   abc->a = AlphaBeta->Alpha; // a = α;
   abc->b = -0.5f * AlphaBeta->Alpha +
-           (SQRT3 / 2.0f) * AlphaBeta->Beta; // b = (-α + √3 * β) / 2
+           SQRT3_DIV2 * AlphaBeta->Beta; // b = (-α + √3 * β) / 2
   abc->c = -0.5f * AlphaBeta->Alpha -
-           (SQRT3 / 2.0f) * AlphaBeta->Beta; // c = (-α - √3 * β) / 2
+           SQRT3_DIV2 * AlphaBeta->Beta; // c = (-α - √3 * β) / 2
 }
 
 /**
@@ -67,6 +69,139 @@ static void FOC_SetSPWM(FOC_Instance *instance) {
   instance->pwm.tim->Instance->CCR2 = bCCR;
   instance->pwm.tim->Instance->CCR3 = cCCR;
 }
+/* -------- SVPWM Begin -------- */
+/**
+ * @brief 扇区判断
+ * @param AlphaBeta AlphaBeta轴上的电压
+ * @return 所在的扇区（1 ~ 6）
+ */
+static uint8_t SecJud(AlphaBeta_Typedef AlphaBeta) {
+  float A = AlphaBeta.Beta;
+  float B = SQRT3 * AlphaBeta.Alpha - AlphaBeta.Beta;
+  float C = -SQRT3 * AlphaBeta.Alpha - AlphaBeta.Beta;
+
+  uint8_t sum = 0;
+  uint8_t sector = 0;
+
+  if (A > 0)
+    sum += 1;
+  if (B > 0)
+    sum += 2;
+  if (C > 0)
+    sum += 4;
+
+  switch (sum) {
+  case 3:
+    sector = 1;
+    break;
+  case 1:
+    sector = 2;
+    break;
+  case 5:
+    sector = 3;
+    break;
+  case 4:
+    sector = 4;
+    break;
+  case 6:
+    sector = 5;
+    break;
+  case 2:
+    sector = 6;
+    break;
+  }
+
+  return sector;
+}
+
+static void SetSVPWM(FOC_Instance *instance) {
+  uint8_t sector = SecJud(instance->param.UAlphaBeta);
+
+  float tmp = (float)instance->pwm.period * SQRT3 / instance->param.powerVol;
+  float X = tmp * (instance->param.UAlphaBeta.Beta);
+  float Y = tmp * (instance->param.UAlphaBeta.Alpha * SQRT3_DIV2 +
+                   instance->param.UAlphaBeta.Beta * 0.5f);
+  float Z = tmp * (-instance->param.UAlphaBeta.Alpha * SQRT3_DIV2 +
+                   instance->param.UAlphaBeta.Beta * 0.5f);
+
+  float T1, T2, T0;
+  switch (sector) {
+  case 1:
+    T1 = -Z;
+    T2 = X;
+    break;
+  case 2:
+    T1 = Z;
+    T2 = Y;
+    break;
+  case 3:
+    T1 = X;
+    T2 = -Y;
+    break;
+  case 4:
+    T1 = -X;
+    T2 = Z;
+    break;
+  case 5:
+    T1 = -Y;
+    T2 = -Z;
+    break;
+  case 6:
+    T1 = Y;
+    T2 = -X;
+    break;
+  }
+  if (T1 + T2 > instance->pwm.period) { // 防止 T1，T2 超过周期
+    T1 = instance->pwm.period * T1 / (T1 + T2);
+    T2 = instance->pwm.period * T2 / (T1 + T2);
+  }
+  T0 = (float)instance->pwm.period - T1 - T2;
+
+  abc_Typedef Tabc;
+  Tabc.a = T0 / 4.0f;
+  Tabc.b = Tabc.a + T1 / 2.0f;
+  Tabc.c = Tabc.b + T2 / 2.0f;
+
+  uint32_t aCCR, bCCR, cCCR;
+  switch (sector) {
+  case 1:
+    aCCR = (uint32_t)Tabc.a;
+    bCCR = (uint32_t)Tabc.b;
+    cCCR = (uint32_t)Tabc.c;
+    break;
+  case 2:
+    aCCR = (uint32_t)Tabc.b;
+    bCCR = (uint32_t)Tabc.a;
+    cCCR = (uint32_t)Tabc.c;
+    break;
+  case 3:
+    aCCR = (uint32_t)Tabc.c;
+    bCCR = (uint32_t)Tabc.a;
+    cCCR = (uint32_t)Tabc.b;
+    break;
+  case 4:
+    aCCR = (uint32_t)Tabc.c;
+    bCCR = (uint32_t)Tabc.b;
+    cCCR = (uint32_t)Tabc.a;
+    break;
+  case 5:
+    aCCR = (uint32_t)Tabc.b;
+    bCCR = (uint32_t)Tabc.c;
+    cCCR = (uint32_t)Tabc.a;
+
+    break;
+  case 6:
+    aCCR = (uint32_t)Tabc.a;
+    bCCR = (uint32_t)Tabc.c;
+    cCCR = (uint32_t)Tabc.b;
+    break;
+  }
+
+  instance->pwm.tim->Instance->CCR1 = aCCR;
+  instance->pwm.tim->Instance->CCR2 = bCCR;
+  instance->pwm.tim->Instance->CCR3 = cCCR;
+}
+/* -------- SVPWM  End  -------- */
 /* ---------------- 驱动函数  End  ---------------- */
 /* ---------------- 用户函数 Begin ---------------- */
 /**
@@ -97,7 +232,7 @@ FOC_Instance *FOC_Register(FOC_InitTypedef *init) {
 /**
  * @brief FOC 初始化
  */
-void FOC_Init(FOC_Instance *instance,float angle_electrical_offset) {
+void FOC_Init(FOC_Instance *instance, float angle_electrical_offset) {
   instance->param.angle_electrical_offset = angle_electrical_offset;
   HAL_TIM_Base_Start_IT(instance->pwm.tim);
   instance->pwm.tim->Instance->CCR1 = 0;
@@ -125,8 +260,7 @@ void FOC_SetMode(FOC_Instance *instance, FOC_ControlState mode) {
  * @param Uq 交轴上的电压
  * @param angle 电角度
  */
-void FOC_OpenLoop(FOC_Instance *instance, float Ud, float Uq,
-                  float angle) {
+void FOC_OpenLoop(FOC_Instance *instance, float Ud, float Uq, float angle) {
   /* 参数传递 */
   instance->param.Udq.d = Ud;
   instance->param.Udq.q = Uq;
@@ -134,7 +268,8 @@ void FOC_OpenLoop(FOC_Instance *instance, float Ud, float Uq,
   AngleLimit(&instance->param.angle_electrical);
 
   /* 通过 Park 逆变换和 Clarke 逆变换，将 Uqd 转换为 Uabc */
-  InPark(&instance->param.Udq, &instance->param.UAlphaBeta, instance->param.angle_electrical);
+  InPark(&instance->param.Udq, &instance->param.UAlphaBeta,
+         instance->param.angle_electrical);
   InClarke(&instance->param.UAlphaBeta, &instance->param.Uabc);
 
   /* 根据计算得到的 Uabc 值，设置 SPWM */
@@ -148,17 +283,21 @@ void FOC_OpenLoop(FOC_Instance *instance, float Ud, float Uq,
  * @param Uq 交轴上的电压
  * @param angle 机械角度（编码器测得）
  */
-void FOC_EncoderOpenLoop(FOC_Instance *instance, float Ud, float Uq, float angle) {
+void FOC_EncoderOpenLoop(FOC_Instance *instance, float Ud, float Uq,
+                         float angle) {
   /* 参数传递 */
   instance->param.Udq.d = Ud;
   instance->param.Udq.q = Uq;
   instance->param.angle_mechanical = angle;
-  instance->param.angle_electrical = (float)(angle * instance->param.pole_pairs) - instance->param.angle_electrical_offset;
+  instance->param.angle_electrical =
+      (float)(angle * instance->param.pole_pairs) -
+      instance->param.angle_electrical_offset;
   AngleLimit(&instance->param.angle_mechanical);
   AngleLimit(&instance->param.angle_electrical);
 
   /* 通过 Park 逆变换和 Clarke 逆变换，将 Uqd 转换为 Uabc */
-  InPark(&instance->param.Udq, &instance->param.UAlphaBeta, instance->param.angle_electrical);
+  InPark(&instance->param.Udq, &instance->param.UAlphaBeta,
+         instance->param.angle_electrical);
   InClarke(&instance->param.UAlphaBeta, &instance->param.Uabc);
 
   /* 根据计算得到的 Uabc 值，设置 SPWM */

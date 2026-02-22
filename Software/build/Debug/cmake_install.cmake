@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/Relog/Desktop/STM32G431CBU6_Template/Software
+# Install script for directory: C:/Users/27368/Desktop/STM32G431CBU6_Template/Software
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,18 +34,18 @@ endif()
 
 # Set path to fallback-tool for dependency-resolution.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "C:/arm-gnu/bin/arm-none-eabi-objdump.exe")
+  set(CMAKE_OBJDUMP "D:/arm_gcc/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-objdump.exe")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("C:/Users/Relog/Desktop/STM32G431CBU6_Template/Software/build/Debug/cmake/stm32cubemx/cmake_install.cmake")
+  include("C:/Users/27368/Desktop/STM32G431CBU6_Template/Software/build/Debug/cmake/stm32cubemx/cmake_install.cmake")
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "C:/Users/Relog/Desktop/STM32G431CBU6_Template/Software/build/Debug/install_local_manifest.txt"
+  file(WRITE "C:/Users/27368/Desktop/STM32G431CBU6_Template/Software/build/Debug/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
 if(CMAKE_INSTALL_COMPONENT)
@@ -61,6 +61,6 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "C:/Users/Relog/Desktop/STM32G431CBU6_Template/Software/build/Debug/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "C:/Users/27368/Desktop/STM32G431CBU6_Template/Software/build/Debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
